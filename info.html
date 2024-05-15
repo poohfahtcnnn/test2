@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About PM2.5</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1, h2 {
+            color: #333;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ccc;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        
+        ul li {
+            margin-bottom: 10px;
+        }
+        
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+        }
+        
+        .back-btn {
+            display: block;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .back-btn a, .map-btn a {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        
+        .back-btn a:hover, .map-btn a:hover {
+            background-color: #0056b3;
+        }
+        
+        .map-btn {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>About PM2.5</h1>
+        <p>PM2.5, or particulate matter with a diameter of 2.5 micrometers or less, is a major air pollutant that poses serious health risks. These particles are so small that they can penetrate deep into the lungs and even enter the bloodstream, leading to various health problems.</p>
+        
+        <h2>Air Pollution Level (AQI) for PM2.5 [ REF : aqicn.org ]</h2>
+        <table>
+            <tr>
+                <th>AQI</th>
+                <th>Air Pollution Level</th>
+                <th>Health Implications</th>
+                <th>Cautionary Statement</th>
+            </tr>
+            <tr>
+                <td>0 - 50</td>
+                <td>Good</td>
+                <td>Air quality is considered satisfactory, and air pollution poses little or no risk.</td>
+                <td>None</td>
+            </tr>
+            <tr>
+                <td>51 - 100</td>
+                <td>Moderate</td>
+                <td>Air quality is acceptable; however, for some pollutants there may be a moderate health concern for a very small number of people who are unusually sensitive to air pollution.</td>
+                <td>Active children and adults, and people with respiratory disease, such as asthma, should limit prolonged outdoor exertion.</td>
+            </tr>
+            <tr>
+                <td>101-150</td>
+                <td>Unhealthy for Sensitive Groups</td>
+                <td>Members of sensitive groups may experience health effects. The general public is not likely to be affected.</td>
+                <td>Active children and adults, and people with respiratory disease, such as asthma, should limit prolonged outdoor exertion.</td>
+            </tr>
+            <tr>
+                <td>151-200</td>
+                <td>Unhealthy</td>
+                <td>Everyone may begin to experience health effects; members of sensitive groups may experience more serious health effects.</td>
+                <td>Active children and adults, and people with respiratory disease, such as asthma, should avoid prolonged outdoor exertion; everyone else, especially children, should limit prolonged outdoor exertion.</td>
+            </tr>
+            <tr>
+                <td>201-300</td>
+                <td>Very Unhealthy</td>
+                <td>Health warnings of emergency conditions. The entire population is more likely to be affected.</td>
+                <td>Active children and adults, and people with respiratory disease, such as asthma, should avoid all outdoor exertion; everyone else, especially children, should limit outdoor exertion.</td>
+            </tr>
+            <tr>
+                <td>300+</td>
+                <td>Hazardous</td>
+                <td>Health alert: everyone may experience more serious health effects.</td>
+                <td>Everyone should avoid all outdoor exertion.</td>
+            </tr>
+        </table>
+        
+        <h2>Causes of PM2.5 Pollution</h2>
+        <p>The primary sources of PM2.5 pollution include vehicle emissions, industrial activities, construction sites, agricultural burning, and residential heating with solid fuels. These activities release pollutants such as sulfur dioxide (SO2), nitrogen oxides (NOx), volatile organic compounds (VOCs), and particulate matter into the air, contributing to the formation of PM2.5.</p>
+        
+        <h2>Dangers of PM2.5 Exposure</h2>
+        <p>Exposure to elevated levels of PM2.5 can cause a range of health problems, including respiratory issues such as asthma, bronchitis, and reduced lung function. Long-term exposure to PM2.5 has been linked to cardiovascular diseases, lung cancer, and premature death, particularly among vulnerable populations such as children, the elderly, and individuals with pre-existing health conditions.</p>
+        
+        <h2>Preventive Measures</h2>
+        <ul>
+            <li>Avoid outdoor activities during periods of high PM2.5 concentration, especially exercise or strenuous activities.</li>
+            <li>Use air purifiers with HEPA filters indoors to reduce indoor PM2.5 levels.</li>
+            <li>Keep windows and doors closed during periods of high outdoor pollution.</li>
+            <li>Use public transportation or carpooling to reduce vehicle emissions.</li>
+            <li>Support policies and initiatives aimed at reducing industrial emissions and promoting clean energy sources.</li>
+        </ul>
+        
+        <div class="map-btn">
+            <a href="map.html">GO TO MAP</a>
+        </div>
+        
+        <div class="back-btn">
+            <a href="index.html">BACK TO HOME</a>
+        </div>
+    </div>
+</body>
+</html>

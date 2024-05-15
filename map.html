@@ -1,0 +1,585 @@
+<!-- สรุปการทำงานของเว็บไซต์โดยย่อ -->
+<!-- ตัวเว็บมีการทำงานโดยการใช้ Leaflet มาใช้ทำแผนที่ในการแสดงข้อมูลภูมิอากาศ -->
+<!-- โดยใช้ API ที่เป็นข้อมูลของ waqi.info โดยจะดึงข้อมูลออกมาเป็นพิกัดของสถานีตรวจอากาศ [lat , long  -->
+<!-- ทำการวาง Layer map ของ Leaflet กำหนดตำแหน่งให้ตรงกับประเทศไทย -->
+<!-- ทำการดึงข้อมูลจาก API ในที่นี้ขอบเขตคือทั้งหมดของ API ที่มี และทำการใช้ JS Fetch [ เรียกข้อมูลโดยไม่ต้องรีเฟรชเว็บ ] API -->
+<!-- นำข้อมูลจาก API ไปแปลงเป็นมูลให้เป็นรูปแบบ JSON และนำข้อมูลนั้นมาทำเป็น Marker สำหรับจุดบนแผนที่ -->
+<!-- จะมีในส่วนของ Location ที่ทำ Dropdown list เป็นจังหวัดของประเทศไทย -->
+<!-- พร้อมทั้ง JS , CSS ในการตกแต่ง , ทำให้ปรับขยับสัดส่วนของแผนที่ได้และทำเว็บให้เป็นแบบ Responsive และรองรับในหลายอุปกรณ์ที่มีขนาดหน้าจอต่างกัน -->
+<!-- ในส่วนของ Loading Screen มีไว้เพื่อให้ระบบทำการโหลด Maker ก่อนล่วงหน้าที่จะใช้งาน เนื่องจากไม่ได้รันในเซิร์ฟเวอร์ อาจมีอาการค้างหรือโหลดช้า -->
+<!-- ทำการ Cache token API เพื่อลดการขอ Request ลงหากเป็นไปได้ เนื่องจากมีการจำกัดการดึงข้อมูลไว้ -->
+<!-- ทำการเชียนการโหลด JS สำหรับ Browser ที่เป็น IE 9 หรือต่ำกว่านั้นเผื่อไว้ กรณีที่มีการเปิดด้วย IE ตัวเว็บจะทำงานได้สมบูรณ์ -->
+<!-- ตัวหน้าเว็บ Index ใช้ BootStrap 5 Framework โดยใช้ REGNA Template นำมาดัดแปลง -->
+<!-- ตัวหน้าเว็บ info ใช้ข้อมูลจาก waqi ในเรื่องของระดับฝุ่นและความอันตราย   -->
+
+<!DOCTYPE html> <!-- ประกาศเอกสารเป็น HTML5 -->
+<html lang="en"> <!-- กำหนดภาษาของเอกสารเป็นอังกฤษ -->
+<head> <!-- เริ่มต้นส่วนหัวของเอกสาร -->
+    <meta charset="UTF-8"> <!-- กำหนด encoding เป็น UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- กำหนดการเข้าชมหน้าเว็บโดยคำนึงถึงขนาดหน้าจอ -->
+    <title>Air Quality Map</title> <!-- กำหนดชื่อของหน้าเว็บ -->
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.css" /> <!-- เชื่อมโยงไฟล์ CSS ของ Leaflet เพื่อใช้สร้างแผนที่ -->
+    <style>
+        /* เริ่มต้นส่วนของ CSS ภายในเอกสาร */
+        /* อยู่ในหัวข้อ <style> */
+
+        /* Hide the bounds text */
+        #leaflet-map-bounds {
+            display: none;
+        }
+
+        /* Styling for the loading spinner */
+        .loading {
+            position: fixed;
+            z-index: 999; /* Ensures it's above everything */
+            height: 2em;
+            width: 2em;
+            overflow: show; /* Show the spinner even if it's bigger */
+            margin: auto; /* Centering */
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+        }
+
+        /* Transparent overlay for the loading spinner */
+        .loading:before {
+            content: '';
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Gradient background for overlay */
+            background: radial-gradient(rgba(20, 20, 20, .8), rgba(0, 0, 0, .8));
+            background: -webkit-radial-gradient(rgba(20, 20, 20, .8), rgba(0, 0, 0, .8));
+        }
+
+        /* Hide loading text from IE9 and below */
+        .loading:not(:required) {
+            font: 0/0 a;
+            color: transparent;
+            text-shadow: none;
+            background-color: transparent;
+            border: 0;
+        }
+
+        /* Spinner animation */
+        .loading:not(:required):after {
+            content: '';
+            display: block;
+            font-size: 10px;
+            width: 1em;
+            height: 1em;
+            margin-top: -0.5em;
+            -webkit-animation: spinner 150ms infinite linear;
+            -moz-animation: spinner 150ms infinite linear;
+            -ms-animation: spinner 150ms infinite linear;
+            -o-animation: spinner 150ms infinite linear;
+            animation: spinner 150ms infinite linear;
+            border-radius: 0.5em;
+            /* Shadow for spinner */
+            -webkit-box-shadow: rgba(255, 255, 255, 0.75) 1.5em 0 0 0, rgba(255, 255, 255, 0.75) 1.1em 1.1em 0 0, rgba(255, 255, 255, 0.75) 0 1.5em 0 0, rgba(255, 255, 255, 0.75) -1.1em 1.1em 0 0, rgba(255, 255, 255, 0.75) -1.5em 0 0 0, rgba(255, 255, 255, 0.75) -1.1em -1.1em 0 0, rgba(255, 255, 255, 0.75) 0 -1.5em 0 0, rgba(255, 255, 255, 0.75) 1.1em -1.1em 0 0;
+            box-shadow: rgba(255, 255, 255, 0.75) 1.5em 0 0 0, rgba(255, 255, 255, 0.75) 1.1em 1.1em 0 0, rgba(255, 255, 255, 0.75) 0 1.5em 0 0, rgba(255, 255, 255, 0.75) -1.1em 1.1em 0 0, rgba(255, 255, 255, 0.75) -1.5em 0 0 0, rgba(255, 255, 255, 0.75) -1.1em -1.1em 0 0, rgba(255, 255, 255, 0.75) 0 -1.5em 0 0, rgba(255, 255, 255, 0.75) 1.1em -1.1em 0 0;
+        }
+
+        /* Spinner animation keyframes */
+        @-webkit-keyframes spinner {
+            0% {
+                -webkit-transform: rotate(0deg);
+                -moz-transform: rotate(0deg);
+                -ms-transform: rotate(0deg);
+                -o-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                -moz-transform: rotate(360deg);
+                -ms-transform: rotate(360deg);
+                -o-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+
+        @-moz-keyframes spinner {
+            0% {
+                -webkit-transform: rotate(0deg);
+                -moz-transform: rotate(0deg);
+                -ms-transform: rotate(0deg);
+                -o-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                -moz-transform: rotate(360deg);
+                -ms-transform: rotate(360deg);
+                -o-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+
+        @-o-keyframes spinner {
+            0% {
+                -webkit-transform: rotate(0deg);
+                -moz-transform: rotate(0deg);
+                -ms-transform: rotate(0deg);
+                -o-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                -moz-transform: rotate(360deg);
+                -ms-transform: rotate(360deg);
+                -o-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes spinner {
+            0% {
+                -webkit-transform: rotate(0deg);
+                -moz-transform: rotate(0deg);
+                -ms-transform: rotate(0deg);
+                -o-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                -moz-transform: rotate(360deg);
+                -ms-transform: rotate(360deg);
+                -o-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Resetting default body and html margin/padding */
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        /* Styling for the leaflet map */
+        #leaflet-map {
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Styling for the locations container */
+        #leaflet-locations {
+            position: absolute;
+            top: 10px;
+            left: 60px;
+            z-index: 1000;
+            background-color: white;
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        /* Styling for location buttons */
+        .location-button {
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+
+        /* Styling for active location button */
+        .location-button.active {
+            background-color: #007bff;
+            color: white;
+        }
+
+        /* Media query for smaller screens */
+        @media screen and (max-width: 768px) {
+            #leaflet-locations {
+                top: auto;
+                bottom: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
+
+        /* Styling for the back button */
+        #back-button {
+            position: absolute;
+            top: 8px;
+            left: 250px;
+            z-index: 1000;
+        }
+
+        /* Styling for the back button link */
+        #back-button a {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Hover styling for the back button */
+        #back-button a:hover {
+            background-color: #0056b3;
+        }
+
+
+    </style>
+</head>
+<body>
+    <!-- Spinner สำหรับแสดงขณะโหลด -->
+    <div class="loading">Loading&#8230;</div>
+
+    <!-- ปุ่มกลับสู่หน้าหลัก -->
+    <div id="back-button">
+        <a href="index.html">Back to Index</a>
+    </div>
+
+    <!-- โค้ดสำหรับแสดงแผนที่ -->
+    <div id='leaflet-map'></div>
+
+    <!-- เลือกตำแหน่ง -->
+    <div id="leaflet-locations">
+        <select id="location-select">
+            <option value="">Select Location</option>
+            <option value="13.736717,100.523186,14.103269,100.98464">Bangkok</option>
+            <option value="18.590411,98.4375,18.869292,99.155273">Chiang Mai</option>
+            <option value="7.857639,98.249512,8.247908,98.564453">Phuket</option>
+            <option value="8.0863,98.906019,8.214676,99.136914">Krabi</option>
+            <option value="8.300662,98.159196,8.553197,98.586956">Phang Nga</option>
+            <option value="8.299931,99.531176,9.270642,99.969544">Surat Thani</option>
+            <option value="9.641196,98.383015,10.017146,98.782028">Ranong</option>
+            <option value="9.654177,98.366597,10.558993,99.053996">Chumphon</option>
+            <option value="7.155063,99.702843,7.694482,99.999276">Trang</option>
+            <option value="7.949116,99.49894,8.658548,100.07968">Nakhon Si Thammarat</option>
+            <option value="7.419791,99.879885,7.972615,100.397276">Phatthalung</option>
+            <option value="6.779868,101.194727,6.951035,101.441482">Pattani</option>
+            <option value="6.255402,101.002036,6.506454,101.392476">Yala</option>
+            <option value="5.936047,101.544951,6.679034,102.029647">Narathiwat</option>
+            <option value="6.90395,100.999565,7.35523,100.814805">Songkhla</option>
+            <option value="12.869771,100.857791,12.920823,100.931738">Pattaya</option>
+            <option value="12.582864,101.238364,13.068194,101.533908">Rayong</option>
+            <option value="13.002429,100.876853,13.608682,101.542935">Chon Buri</option>
+            <option value="12.227951,102.060445,12.990837,102.600125">Chanthaburi</option>
+            <option value="11.996189,102.113387,12.55563,102.93069">Trat</option>
+            <option value="13.799137,98.231835,14.636343,99.158238">Kanchanaburi</option>
+            <option value="13.232065,99.581168,14.164093,100.400467">Ratchaburi</option>
+            <option value="13.263778,99.483491,14.215641,100.206615">Suphan Buri</option>
+            <option value="13.641082,99.753168,14.184823,100.053994">Nakhon Pathom</option>
+            <option value="13.47703,99.757994,13.684922,100.080352">Samut Sakhon</option>
+            <option value="13.481978,100.491527,13.692792,100.987531">Samut Prakan</option>
+            <option value="13.809058,100.306052,14.07985,100.717284">Pathum Thani</option>
+            <option value="13.773889,100.338184,14.271238,100.532494">Nonthaburi</option>
+            <option value="14.217196,100.440799,14.868676,100.862884">Ayutthaya</option>
+            <option value="14.453185,100.34274,15.137509,101.044982">Lopburi</option>
+            <option value="14.555721,100.154264,14.977028,100.710866">Sing Buri</option>
+            <option value="14.336982,100.2615,14.71679,100.764442">Ang Thong</option>
+            <option value="14.312825,100.792971,14.95207,101.652129">Saraburi</option>
+            <option value="15.061428,99.754683,15.956547,100.612106">Chai Nat</option>
+            <option value="15.375168,99.56922,16.004883,100.454819">Nakhon Sawan</option>
+            <option value="15.201477,99.192516,15.730206,100.0718">Uthai Thani</option>
+            <option value="15.624479,99.341372,16.277194,100.027358">Kamphaeng Phet</option>
+            <option value="15.990513,98.282999,17.089626,99.928915">Tak</option>
+            <option value="16.065028,98.509102,17.163208,100.089281">Sukhothai</option>
+            <option value="15.537355,99.920186,16.316516,100.840947">Phitsanulok</option>
+            <option value="15.084043,99.728625,16.078702,100.679222">Phichit</option>
+            <option value="15.001728,100.231103,16.259034,101.748269">Phetchabun</option>
+            <option value="15.54293,103.342612,16.395368,104.296836">Roi Et</option>
+            <option value="15.071246,103.12073,16.2005,104.121288">Kalasin</option>
+            <option value="16.318773,103.90362,17.820302,104.932465">Sakon Nakhon</option>
+            <option value="16.542836,104.332686,17.918446,105.352724">Nakhon Phanom</option>
+            <option value="15.800124,104.639611,16.919123,105.758317">Mukdahan</option>
+            <option value="15.479343,104.034754,16.084438,105.029796">Yasothon</option>
+            <option value="15.590183,104.263786,16.536913,105.415709">Amnat Charoen</option>
+            <option value="14.614741,104.662004,15.43708,106.129812">Ubon Ratchathani</option>
+            <option value="14.456507,103.400162,15.411889,104.519185">Si Saket</option>
+            <option value="14.422936,103.481138,15.541212,104.560273">Surin</option>
+            <option value="14.195309,102.905669,15.448265,104.305402">Buri Ram</option>
+            <option value="14.263938,101.620743,15.887002,102.895357">Nakhon Ratchasima</option>
+            <option value="15.09835,101.139233,16.48684,102.48113">Chaiyaphum</option>
+            <option value="15.310546,101.511768,16.874911,102.897043">Khon Kaen</option>
+            <option value="15.253583,102.004983,16.244405,103.047542">Maha Sarakham</option>
+            <option value="16.224349,101.988475,17.359842,103.462239">Loei</option>
+            <option value="16.586736,102.76533,17.113927,103.412733">Nong Bua Lamphu</option>
+            <option value="16.582219,102.395271,18.185947,104.152833">Udon Thani</option>
+            <option value="17.64361,102.393918,18.64628,103.813754">Nong Khai</option>
+            <option value="17.98263,103.458454,18.705504,104.216361">Bueng Kan</option>
+            <option value="19.603481,99.97799,20.099928,100.290175">Chiang Rai</option>
+            <option value="19.124997,99.462485,20.420329,100.098238">Phayao</option>
+            <option value="18.1707,100.073255,20.392665,101.16658">Nan</option>
+            <option value="17.720839,98.339052,19.17384,99.732126">Lampang</option>
+            <option value="18.3571,98.60637,18.963299,99.26235">Lamphun</option>
+            <option value="18.446085,99.300155,19.084335,100.377481">Phrae</option>
+            <option value="16.60409,99.226697,17.920088,100.886128">Uttaradit</option>
+        </select>
+    </div>
+    <div id="leaflet-map-error" style="color: red; display: none;"></div>
+    <div id="leaflet-map-bounds" style="position: absolute; top: 10px; right: 10px; background-color: white; padding: 5px; z-index: 1000;"></div>
+    <script>
+        // ตั้งเวลาในการลบ Spinner หลังจากผ่านไป 5 วินาที
+        setTimeout(function(){
+            var loadingElement = document.querySelector('.loading');
+            if(loadingElement){
+                loadingElement.parentNode.removeChild(loadingElement);
+            }
+        }, 5000); // 5000 milliseconds 
+
+        // ฟังก์ชันสำหรับโหลดสคริปต์
+        function loadScript(url, callback){
+            var script = document.createElement("script");
+            script.type = "text/javascript";
+            if (script.readyState){  // สำหรับ IE
+                script.onreadystatechange = function(){
+                    if (script.readyState == "loaded" || script.readyState == "complete"){
+                        script.onreadystatechange = null;
+                        callback();
+                    }
+                };
+            } else {  // สำหรับเบราว์เซอร์อื่นๆ
+                script.onload = function(){
+                    callback();
+                };
+            }
+            script.src = url;
+            document.getElementsByTagName("head")[0].appendChild(script);
+        }
+
+        // โหลดสคริปต์ Leaflet.js และเรียกฟังก์ชัน init เมื่อโหลดเสร็จ
+        loadScript("http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.js", init);
+
+        // ฟังก์ชันสำหรับแคช token
+        let cachedToken = null;
+        function token() {
+            if (!cachedToken) {
+                cachedToken = "b16a2f355238d6291dda8d36769b97e289aefcff";
+            }
+            return cachedToken;
+        }
+
+        let allMarkers = {};
+        let oldButton;
+
+
+        function createMap() {
+            // สร้าง OpenStreetMap layer
+            var OpenStreetMap_Mapnik = L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+                    maxZoom: 19,
+                    attribution:
+                        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                }
+            );
+
+            // สร้างแผนที่ Leaflet และกำหนดค่าต่างๆ
+            let map = L.map(document.getElementById("leaflet-map"), {
+                attributionControl: false, // ไม่แสดงเครดิต
+                gestureHandling: false, // ไม่มีการจัดการการเคลื่อนไหวด้วย touch
+                zoomSnap: 0.1, // ช่วงการซูม
+            })
+            .setView([13.7247, 100.4317], 6) // ตั้งค่ามุมมองเริ่มต้นที่ประเทศไทย
+            .addLayer(OpenStreetMap_Mapnik); // เพิ่ม OpenStreetMap layer
+
+            // ตั้งเวลาหลังจากโหลดเพื่อกำหนดขอบเขตและเพิ่มตัวหมุด
+            setTimeout(function () {
+                let bounds = map.getBounds(); // รับขอบเขตของแผนที่
+                bounds = bounds.getNorth() + "," + bounds.getWest() + "," + bounds.getSouth() + "," + bounds.getEast(); // สร้างขอบเขตในรูปแบบของ string
+                document.getElementById("leaflet-map-bounds").innerHTML = "bounds: " + bounds.split(",").join(", "); // แสดงขอบเขตบนหน้าเว็บ
+
+                // เพิ่มตัวหมุดบนแผนที่
+                populateMarkers(map, bounds, true);
+
+                // เมื่อผู้ใช้เลื่อนแผนที่
+                map.on("moveend", () => {
+                    let bounds = map.getBounds();
+                    bounds = bounds.getNorth() + "," + bounds.getWest() + "," + bounds.getSouth() + "," + bounds.getEast();
+                    document.getElementById("leaflet-map-bounds").innerHTML = "bounds: " + bounds.split(",").join(", ");
+
+                    populateMarkers(map, bounds, true); // เพิ่มตัวหมุดเมื่อเลื่อนแผนที่
+                });
+            }, 1000); // รอเวลา 1 วินาที เพื่อให้แผนที่โหลดสมบูรณ์
+
+            return map; // ส่งคืนออบเจกต์แผนที่
+        }
+
+        // ฟังก์ชันสำหรับเพิ่มตัวหมุดบนแผนที่
+        function populateMarkers(map, bounds, isRefresh) {
+            return fetch(
+                "https://api.waqi.info/v2/map/bounds/?latlng=" +
+                bounds +
+                "&token=" +
+                token() // โหลดข้อมูลตำแหน่งโดยใช้ API ของ WAQI
+            )
+            .then((x) => x.json())
+            .then((stations) => {
+                if (stations.status != "ok") throw stations.data;
+
+                // เพิ่มตัวหมุดลงบนแผนที่
+                stations.data.forEach((station) => {
+                    if (allMarkers[station.uid])
+                        map.removeLayer(allMarkers[station.uid]);
+
+                    // กำหนดขนาดและตำแหน่งของ icon ของตัวหมุด
+                    let iw = 83,
+                        ih = 107;
+                    let icon = L.icon({
+                        iconUrl:
+                            "https://waqi.info/mapicon/" + station.aqi + ".30.png",
+                        iconSize: [iw / 2, ih / 2],
+                        iconAnchor: [iw / 4, ih / 2 - 5],
+                    });
+
+                    // เพิ่มตัวหมุดลงบนแผนที่
+                    let marker = L.marker([station.lat, station.lon], {
+                        zIndexOffset: station.aqi,
+                        title: station.station.name,
+                        icon: icon,
+                    }).addTo(map);
+
+                    // เมื่อคลิกที่ตัวหมุด
+                    marker.on("click", () => {
+                        let popup = L.popup()
+                            .setLatLng([station.lat, station.lon])
+                            .setContent(station.station.name)
+                            .openOn(map);
+
+                        // แสดงข้อมูลเพิ่มเติมเมื่อคลิกที่ตัวหมุด
+                        getMarkerPopup(station.uid).then((info) => {
+                            popup.setContent(info);
+                        });
+                    });
+
+                    allMarkers[station.uid] = marker; // เก็บตัวหมุดลงในออบเจกต์
+                });
+
+                document.getElementById("leaflet-map-error").style.display = "none"; // ซ่อนข้อผิดพลาด (หากมี)
+                return stations.data.map(
+                    (station) => new L.LatLng(station.lat, station.lon)
+                );
+            })
+            .catch((e) => {
+                var o = document.getElementById("leaflet-map-error");
+                o.innerHTML = "Sorry...." + e;
+                o.style.display = ""; // แสดงข้อผิดพลาด
+            });
+        }
+
+
+        // ฟังก์ชันสำหรับเพิ่มตัวหมุดลงบนแผนที่และปรับขนาดแผนที่ให้พอดี
+        function populateAndFitMarkers(map, bounds) {
+            // ลบตัวหมุดทั้งหมดออกจากแผนที่
+            removeMarkers(map);
+            // ตรวจสอบว่า bounds มีความยาวเท่ากับ 2 หรือไม่
+            if (bounds.split(",").length == 2) {
+                let [lat, lng] = bounds.split(",");
+                lat = parseFloat(lat);
+                lng = parseFloat(lng);
+                // ปรับขอบเขตใหม่โดยเพิ่มหรือลดค่าละ 0.5 เพื่อให้ขอบเขตกว้างขึ้น
+                bounds = `${lat - 0.5},${lng - 0.5},${lat + 0.5},${lng + 0.5}`;
+            }
+            // เพิ่มตัวหมุดลงบนแผนที่และคำนวณขอบเขตใหม่ของแผนที่
+            populateMarkers(map, bounds).then((markerBounds) => {
+                let [lat1, lng1, lat2, lng2] = bounds.split(",");
+                // สร้างขอบเขตของแผนที่โดยใช้พิกัดของตัวหมุด
+                let mapBounds = L.latLngBounds(
+                    L.latLng(lat2, lng2),
+                    L.latLng(lat1, lng1)
+                );
+                // ปรับขนาดแผนที่ให้พอดีกับขอบเขตของตัวหมุดและกำหนดพิกัดบนสุดซ้ายของแผนที่
+                map.fitBounds(mapBounds, { maxZoom: 12, paddingTopLeft: [0, 40] });
+            });
+        }
+
+        // ฟังก์ชันสำหรับลบตัวหมุดทั้งหมดออกจากแผนที่ [ ยังไม่มีการใช้งาน มีไว้สำหรับทำปุ่มซ่อน Maker บนแผนที่เพิ่มเติม หรือ ใช้สำหรับต่อยอดให้แผนที่แสดงหมุดอื่นๆ ด้วย]
+        function removeMarkers(map) {
+            Object.values(allMarkers).forEach((marker) => map.removeLayer(marker));
+            allMarkers = {}; // เคลียร์ออบเจกต์ allMarkers เพื่อลบตัวหมุดทั้งหมด
+        }
+
+        // ฟังก์ชันสำหรับรับข้อมูล Popup ของตัวหมุด
+        function getMarkerPopup(markerUID) {
+            return getMarkerAQI(markerUID).then((marker) => {
+                let info =
+                    marker.city.name +
+                    ": AQI " +
+                    marker.aqi +
+                    " updated on " +
+                    new Date(marker.time.v * 1000).toLocaleTimeString() +
+                    "<br>";
+
+                if (marker.city.location) {
+                    info += "<b>Location</b>: ";
+                    info += "<small>" + marker.city.location + "</small><br>";
+                }
+
+                let pollutants = ["pm25", "pm10", "o3", "no2", "so2", "co"];
+
+                info += "<b>Pollutants</b>: ";
+                for (specie in marker.iaqi) {
+                    if (pollutants.indexOf(specie) >= 0)
+                        info += "<u>" + specie + "</u>:" + marker.iaqi[specie].v + " ";
+                }
+                info += "<br>";
+
+                info += "<b>Weather</b>: ";
+                for (specie in marker.iaqi) {
+                    if (pollutants.indexOf(specie) < 0)
+                        info += "<u>" + specie + "</u>:" + marker.iaqi[specie].v + " ";
+                }
+                info += "<br>";
+
+                info += "<b>Attributions</b>: <small>";
+                info += marker.attributions
+                    .map(
+                        (attribution) =>
+                            "<a target=_ href='" +
+                            attribution.url +
+                            "'>" +
+                            attribution.name +
+                            "</a>"
+                    )
+                    .join(" - ");
+                return info; // ส่งคืนข้อมูล Popup
+            });
+        }
+
+
+        // ฟังก์ชันสำหรับดึงข้อมูล AQI ของตัวหมุดจาก API ของ WAQI
+        function getMarkerAQI(markerUID) {
+            return fetch(
+                "https://api.waqi.info/feed/@" + markerUID + "/?token=" + token()
+            )
+                .then((x) => x.json())
+                .then((data) => {
+                    if (data.status != "ok") throw data.reason; // ถ้าไม่สามารถดึงข้อมูลได้ ให้ส่งข้อความผิดพลาดกลับ
+                    return data.data; // ส่งข้อมูล AQI ของตัวหมุดกลับ
+                });
+        }
+
+        // ฟังก์ชัน init ใช้ในเริ่มต้นการทำงาน โดยจะสร้างแผนที่ และเพิ่มการตรวจจับการเปลี่ยนแปลงของ select element สำหรับเลือกตำแหน่ง
+        function init() {
+            var map = createMap(); // สร้างแผนที่
+
+            // เมื่อมีการเปลี่ยนแปลงใน select element
+            document.getElementById("location-select").addEventListener("change", function() {
+                var selectedValue = this.value;
+                if (selectedValue !== "") { // ถ้ามีการเลือกตำแหน่ง
+                    var bounds = selectedValue.split(",");
+                    populateAndFitMarkers(map, bounds.join(",")); // เรียกใช้ฟังก์ชันเพื่อเพิ่มตัวหมุดและปรับขนาดแผนที่ให้พอดี
+                }
+            });
+
+            // ดึงข้อมูล AQI ของตำแหน่งปัจจุบันและเพิ่มปุ่มตำแหน่ง
+            fetch("https://api.waqi.info/v2/feed/here/?token=" + token())
+                .then((x) => x.json())
+                .then((x) => {
+                    addLocationButton(x.data.city.name, x.data.city.geo.join(","));
+                });
+        }
+
+    </script>
+</body>
+</html>
